@@ -1,6 +1,10 @@
-import sys
+#!/usr/bin/python
+
+import argparse
 import json
 import requests
+import textwrap
+import os
 from datetime import datetime
 
 def convert_to_datetime(created_at):
@@ -8,85 +12,140 @@ def convert_to_datetime(created_at):
     return datetime.strptime(created_at, original_format)
 
 def get_tweet_ids_and_dates(json_data):
+    print("[*] Cargando JSON....")
     result = []
-    data = json.loads(json_data)
+    try:
+        data = json.loads(json_data)
+    except:
+        print("error al cargar json")
+        pass
 
-    for d in data:
-        tweet = d['tweet']
-        tweet_info = {
-            'id_str': tweet['id_str'],
-            'created_at': tweet['created_at'],
-            'media_url': None  # Establecer media_url a None por defecto
-        }
-        entities = tweet.get('entities', {})
-        if 'media' in entities:
-            media = entities['media']
-            if media:
-                # Si hay información de medios, tomar la primera URL de media_url
-                tweet_info['media_url'] = media[0]['media_url']
-        result.append(tweet_info)
+    for d in data:   
+        try:
+            tweet = d['tweet']            
+            tweet_info = {
+                'id_str': tweet['id_str'],
+                'created_at': tweet['created_at'],
+                'expanded_url': None  
+            }
+            entities = tweet.get('entities', {})
+            if 'media' in entities:
+                media = entities['media']
+                if media:
+                    tweet_info['expanded_url'] = media[0]['expanded_url']
+            result.append(tweet_info)
+        except ValueError:
+            pass
 
     return result
 
 
-def parse_req_headers(request_file):
+def parse_req_headers(session):
     sess = {}
 
-    with open(request_file) as f:
+    with open(session) as f:
         for line in f:
             try:
                 k, v = line.split(':', 1)
                 val = v.strip()
                 sess[k] = val
             except ValueError:
-                # Ignora las líneas vacías
                 pass
-
+    print("[*] Cargando sesión....")
     return sess
 
-def main(ac, av):
-    if ac != 4:
-        print(f"[!] uso: {av[0]} <jsonfile> <req-headers> <later_date>")
-        return
+def main(args):
+    print("Valor de args.js:", args.js) 
+    if args.js:
+        tweets = args.js
+        if not os.path.exists(tweets):
+            raise FileNotFoundError(f"No se ha encontrado el archivo {tweets}")
+    else: 
+        tweets = "tweets.js"
+        if not os.path.exists(tweets):
+            raise FileNotFoundError("No se ha encontrado el archivo tweets.js")
 
-    f = open(av[1], encoding='UTF-8')
+    f = open(tweets, encoding='UTF-8')
     raw = f.read()
     f.close()
 
-    # Saltar datos hasta el primer '['
+    
     i = raw.find('[')
     tweet_info_list = get_tweet_ids_and_dates(raw[i:])
+    
 
-    session = parse_req_headers(av[2])
-
-    comparison_date_str = av[3]
-    comparison_date = datetime.strptime(comparison_date_str, "%d/%m/%Y")
+    if not args.request:
+        if not os.path.exists("session"):
+            raise Exception("No se ha encontrado el archivo session, utilice -r para señalar cual quiere usar.")
+        else:
+            session = parse_req_headers("session")
+    else:
+        session = parse_req_headers(args.request)
+   
+    if args.time:
+        comparison_date_str = args.time
+        comparison_date = datetime.strptime(comparison_date_str, "%d/%m/%Y")
 
     for tweet_info in tweet_info_list:
+        tweet_media = None
         tweet_id = tweet_info['id_str']
         tweet_date = tweet_info['created_at']
-        tweet_media = tweet_info['media_url']
-
         tweet_datetime = convert_to_datetime(tweet_date)
-        
-        #if tweet_media:
-        #    print(f"Tweet con ID {tweet_id} tiene una imagen en {tweet_media}")
-                
-        # Compara las fechas
-        if tweet_datetime.date() < comparison_date.date():
-         
+        if args.time:
+            if not args.media:
+                if tweet_datetime.date() < comparison_date.date():
+                    delete_tweet(session, tweet_id, tweet_datetime)
+            else:
+                tweet_media = tweet_info['expanded_url']
+                if tweet_datetime.date() < comparison_date.date() and tweet_media:
+                    delete_tweet(session, tweet_id, tweet_datetime)
+        elif args.media:
+            if tweet_media:
+                delete_tweet(session, tweet_id, tweet_datetime)
+        else: 
             delete_tweet(session, tweet_id, tweet_datetime)
-            # Tal vez agregar algún retraso aleatorio aquí para evitar futuras limitaciones de velocidad
+
+deltweets = 0
 
 def delete_tweet(session, tweet_id, TWtime):
-    print(f"[*] borrando tweet:{tweet_id}, publicado en: {TWtime}")
+    global deltweets
+    print(f"[*] borrando tweet: {tweet_id}, publicado en: {TWtime}")
     delete_url = "https://twitter.com/i/api/graphql/VaenaVgh5q5ih7kvyVjgtg/DeleteTweet"
-    data = {"variables": {"tweet_id": tweet_id, "dark_request": False}, "queryId": "VaenaVgh5q5ih7kvyVjgtg"}
+    data = {"variables":{"tweet_id": tweet_id, "dark_request": False}, "queryId": "VaenaVgh5q5ih7kvyVjgtg"}
 
-    # Configurar o reconfigurar el encabezado de tipo de contenido correcto
+    
     session["content-type"] = 'application/json'
     r = requests.post(delete_url, data=json.dumps(data), headers=session)
     print(r.status_code, r.reason)
+    deltweets += 1
 
 if __name__ == '__main__':
-    main(len(sys.argv), sys.argv)
+    parser = argparse.ArgumentParser(
+        description='Herramienta para eliminar tweets en X',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=textwrap.dedent("""
+    [ * ] Se esperan los archivos 'tweets.js' y 'session' en el directorio de ejecución.
+    
+    Para eliminar todos los tweets, simplemente ejecuta:
+    ./Deleting-X.py
+    
+    Para especificar archivos diferentes o aplicar filtros adicionales, puedes usar estas flags:
+    
+    ./Deleting-X.py -js archivo.js -r session   # Elimina todos los tweets
+    ./Deleting-X.py --media                    # Elimina solo tweets con contenido multimedia vinculado
+    ./Deleting-X.py -t 01/01/2010              # Elimina tweets anteriores a esta fecha
+    
+    Puedes combinar estas configuraciones:
+    
+    ./Deleting-X.py -js tweets.js -r session --media -t 01/01/2010   # Elimina contenido multimedia anterior a la fecha especificada
+    
+    Si no especificas -js o -h, la herramienta buscará automáticamente archivos con esos nombres por defecto.
+"""))
+    
+    parser.add_argument('-m', '--media', action='store_true', help='Eliminar imágenes')
+    parser.add_argument('-js', '--js', help='carga el archivo de tweets id')
+    parser.add_argument('-r', '--request', help='carga el archivo con las cookies de sesión')
+    parser.add_argument('-t', '--time', help='Borrar en un rango de tiempo')
+    args = parser.parse_args()
+    main(args)
+    print(f"{deltweets} tweets borrados")
