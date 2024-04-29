@@ -5,11 +5,11 @@ Tools to interact with social networks intelligently.
 
 Herramienta para eliminar huella digital de la red social X/Twitter. 
 
-1. Solicita un archivo de tus datos en X/Twitter. Este archivo estará disponible para su descarga después de unos días (el mío tardó aproximadamente 2 días). Si tus datos están listos para la descarga, recibirás una notificación en tu aplicación de Twitter o por correo electrónico.
+1. Solicita un archivo de tus datos en X/Twitter. Este archivo estará disponible para su descarga después de unos días. Si tus datos están listos para la descarga, recibirás una notificación en tu aplicación de Twitter o por correo electrónico.
 
-2. Una vez que hayas descargado tu archivo, necesitas extraer el archivo ZIP en tu disco. Necesitarás el archivo llamado tweets.js que está incluido en el archivo. Incluye cada tweet/respuesta/retweet, junto con el correspondiente ID de tweet. Para permitir que este script de Python elimine publicaciones con los ID de tweet de tu archivo, también debes proporcionar información de sesión, de lo contrario, el script de Python no podrá autorizar. La forma más sencilla de obtenerlos es desde tu navegador.
+2. Una vez que hayas descargado tu archivo, necesitas extraer el archivo ZIP en tu disco. Necesitarás el archivo llamado tweets.js que está incluido en el archivo. Incluye cada tweet/respuesta/retweet, junto con el correspondiente ID de tweet. Para permitir que este script de Python elimine publicaciones con los ID de tweet de tu archivo, también debes proporcionar información de sesión, de lo contrario, el script de Python no tendrá autorización. La forma más sencilla de obtenerlos es desde tu navegador.
 
-Copia y pega cada encabezado de solicitud después de "Accept", incluidos los valores que están omitidos en este ejemplo. Es importante copiar los siguientes encabezados: Cookie, X-Csrf-Token y Authorization. Pero si tienes dudas, simplemente copia y pega todos los encabezados de solicitud en un archivo en tu disco duro, por ejemplo, request-headers.txt.
+Es importante copiar los siguientes headers: Cookie, X-Csrf-Token y Authorization. Pero si tienes dudas, simplemente copia y pega todos los encabezados de solicitud en un archivo en tu disco duro, por ejemplo, request-headers.txt.
 
 3. El request-headers.txt debe quedar así:
 
