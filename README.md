@@ -1,7 +1,7 @@
 # Social_Media
 Tools to interact with social networks intelligently.
 
-## Deleting-py.py 
+## Deleting-X.py 
 
 Herramienta para eliminar huella digital de la red social X/Twitter. 
 
