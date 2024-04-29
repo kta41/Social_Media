@@ -1,5 +1,5 @@
 # Social_Media
-Tools to interact with social networks intelligently.
+Herramientas para trabajar con las redes sociales de forma inteligente: 
 
 ## Deleting-X.py 
 
